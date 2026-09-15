@@ -158,10 +158,10 @@ For those missing value, I choose to remove them. The recipes do not impute miss
 
 The prepared dataset has `r nrow(prepared_data)` observations from `r n_distinct(prepared_data$entity)` countries. It covers `r min(prepared_data$year)` to `r max(prepared_data$year)`. It contains 12 predictors, the original CO2 outcome, and its base-10 log value. I save the cleaned data as `data/processed/sustainability_clean.csv`. The preparation code is in `code/01_data_preparation.R`.
 
-The glimpse below shows the selected variables and their data types.
+The table below shows the first six rows of the prepared dataset.
 
-```{r prepared-data-glimpse, echo=TRUE}
-dplyr::glimpse(prepared_data)
+```{r prepared-data-head, echo=TRUE}
+head(prepared_data)
 ```
 
 ```{r preparation-table}
