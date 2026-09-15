@@ -59,17 +59,18 @@ missing_plot_data <- selected_data |>
     Country = entity,
     Year = year,
     `Electricity access` = access_electricity_pct,
-    `Clean cooking fuels` = clean_cooking_fuels_pct,
+    `Clean cooking` = clean_cooking_fuels_pct,
     `Renewable capacity` = renewable_capacity_per_capita,
     `GDP per capita` = gdp_per_capita,
     `Land area` = land_area_km2,
     `Fossil electricity` = fossil_electricity_twh,
     `Nuclear electricity` = nuclear_electricity_twh,
     `Renewable electricity` = renewable_electricity_twh,
-    `Low-carbon electricity` = low_carbon_electricity_pct,
-    `Primary energy per capita` = primary_energy_per_capita_kwh,
+    `Low-carbon share` = low_carbon_electricity_pct,
+    `Primary energy` = primary_energy_per_capita_kwh,
     `CO2 emissions` = co2_emissions_kt
-  )
+  ) |>
+  relocate(`Primary energy`, .before = `Electricity access`)
 
 missing_plot <- naniar::vis_miss(
   missing_plot_data,
@@ -77,6 +78,7 @@ missing_plot <- naniar::vis_miss(
   show_perc_col = TRUE,
   warn_large_data = FALSE
 ) +
+  guides(x = guide_axis(angle = 45)) +
   labs(
     title = "Missingness in the selected variables",
     subtitle = "Dark cells indicate missing observations",
@@ -84,12 +86,12 @@ missing_plot <- naniar::vis_miss(
     y = "Observation"
   ) +
   theme_report(11) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(size = 9))
 
 ggsave(
   "graphs/missing_data_pattern.png",
   missing_plot,
-  width = 10,
+  width = 11.5,
   height = 6.2,
   dpi = 220
 )
@@ -179,4 +181,3 @@ codebook <- tribble(
 readr::write_csv(codebook, "data/codebook.csv")
 
 message("Prepared data: ", nrow(prepared_data), " rows and ", ncol(prepared_data), " columns.")
-
