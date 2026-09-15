@@ -77,7 +77,7 @@ Climate change is changing the environment quickly. It affects ecosystems, econo
 
 This project predicts the annual CO2 emissions of a country. The outcome is measured in kilotonnes (kt). It is total emissions instead of emissions per person. My research question is: **How accurately can country-level CO2 emissions be predicted from economic, social, energy, geographic, and time-related characteristics?** I use predictors such as electricity access, GDP per capita, land area, and electricity generation. Country and year are also included.
 
-Five regression models are compared. They are linear regression, elastic net, K-nearest neighbors (KNN), random forest, and gradient-boosted trees. CO2 emissions are very different across countries. A base-10 log transformation is used for the outcome. The models use the same ten cross-validation folds. Only the best one or two models are tested on the later years.
+Five regression models are compared. They are linear regression, elastic net, K-nearest neighbors (KNN), random forest, and gradient-boosted trees. CO2 emissions are very different across countries. A base-10 log transformation is used for the outcome. The models use the same ten cross-validation folds. Only the best model is tested on the later years.
 
 ## Why Do We Want to Predict This?
 
@@ -428,7 +428,7 @@ knitr::include_graphics("graphs/boosted_trees_tuning_rmse.png")
 
 ## Cross-Validation Performance
 
-Table 4 ranks the models with training-set cross-validation only. I use mean RMSE for this ranking. Random forest is first. Linear regression is second, and elastic net is third. KNN has the largest error. All five mean RMSE values are below 0.10 on the log10 scale.
+The table below ranks the models with training-set cross-validation only. I use mean RMSE for this ranking. Random forest is first. Linear regression is second, and elastic net is third. KNN has the largest error. All five mean RMSE values are below 0.10 on the log10 scale.
 
 ```{r cv-comparison-table}
 cv_comparison |>
