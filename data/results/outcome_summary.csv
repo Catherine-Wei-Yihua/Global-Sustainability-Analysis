@@ -1,0 +1,2 @@
+observations,countries,first_year,last_year,minimum_co2_kt,median_co2_kt,mean_co2_kt,maximum_co2_kt,raw_mean_to_median,log10_mean,log10_sd
+2100,108,2000,2019,30,5550.000191,121445.42344202742,10707219.73,21.88205752478458,3.766627343612159,0.9938036814451771

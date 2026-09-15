@@ -1,0 +1,72 @@
+GLOBAL SUSTAINABILITY ANALYSIS - DATA CODEBOOK
+
+Source: Global Data on Sustainable Energy (2000-2020)
+https://www.kaggle.com/datasets/anshtanwar/global-data-on-sustainable-energy/data
+
+Entity | Clean name: entity | Categorical | Predictor and identifier
+Country or region associated with the observation.
+
+Year | Clean name: year | Numeric | Predictor and time index
+Calendar year associated with the observation, from 2000 through 2020 in the raw data.
+
+Access to electricity (% of population) | Clean name: access_electricity_pct | Numeric | Predictor
+Percentage of the population with access to electricity.
+
+Access to clean fuels for cooking | Clean name: clean_cooking_fuels_pct | Numeric | Predictor
+Percentage of the population primarily relying on clean fuels and technologies for cooking.
+
+Renewable-electricity-generating-capacity-per-capita | Clean name: renewable_capacity_per_capita | Numeric | Predictor
+Installed renewable electricity-generating capacity per person.
+
+Financial flows to developing countries (US $) | Clean name: financial_flows_to_developing_countries_us | Numeric | Excluded
+International financial flows supporting clean-energy research, development, and production in developing countries.
+
+Renewable energy share in the total final energy consumption (%) | Clean name: renewable_energy_share_in_total_consumption_pct | Numeric | Excluded
+Renewable energy as a percentage of total final energy consumption.
+
+Electricity from fossil fuels (TWh) | Clean name: fossil_electricity_twh | Numeric | Predictor
+Electricity generated from coal, oil, and gas, measured in terawatt-hours.
+
+Electricity from nuclear (TWh) | Clean name: nuclear_electricity_twh | Numeric | Predictor
+Electricity generated from nuclear power, measured in terawatt-hours.
+
+Electricity from renewables (TWh) | Clean name: renewable_electricity_twh | Numeric | Predictor
+Electricity generated from renewable sources, measured in terawatt-hours.
+
+Low-carbon electricity (% electricity) | Clean name: low_carbon_electricity_pct | Numeric | Predictor
+Percentage of electricity generated from nuclear and renewable sources.
+
+Primary energy consumption per capita (kWh/person) | Clean name: primary_energy_per_capita_kwh | Numeric | Predictor
+Primary energy consumption per person, measured in kilowatt-hours per person.
+
+Energy intensity level of primary energy (MJ/$2017 PPP GDP) | Clean name: energy_intensity_mj_per_2017_ppp_gdp | Numeric | Excluded
+Primary energy use per unit of GDP at 2017 purchasing-power parity.
+
+Value_co2_emissions_kt_by_country | Clean name: co2_emissions_kt | Numeric | Outcome
+Country-level carbon dioxide emissions, measured in kilotonnes.
+
+Renewables (% equivalent primary energy) | Clean name: renewables_equivalent_primary_energy_pct | Numeric | Excluded
+Renewable energy as a percentage of equivalent primary energy use.
+
+gdp_growth | Clean name: gdp_growth | Numeric | Excluded
+Annual percentage growth in gross domestic product.
+
+gdp_per_capita | Clean name: gdp_per_capita | Numeric | Predictor
+Gross domestic product per person.
+
+Density (P/Km2) | Clean name: population_density | Numeric after parsing | Excluded
+Population density measured in people per square kilometer.
+
+Land Area (Km2) | Clean name: land_area_km2 | Numeric | Predictor
+Total land area measured in square kilometers.
+
+Latitude | Clean name: latitude | Numeric | Excluded
+Latitude of the country centroid in decimal degrees.
+
+Longitude | Clean name: longitude | Numeric | Excluded
+Longitude of the country centroid in decimal degrees.
+
+DERIVED MODELING VARIABLE
+
+log10_co2_emissions | Numeric | Transformed outcome
+Base-10 logarithm of co2_emissions_kt, used as the modeling response and primary RMSE scale.

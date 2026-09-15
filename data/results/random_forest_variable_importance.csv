@@ -1,0 +1,13 @@
+predictor,importance
+fossil_electricity_twh,0.9759707426578673
+land_area_km2,0.2642787628548885
+renewable_electricity_twh,0.1585830766488183
+nuclear_electricity_twh,0.10508110703884782
+access_electricity_pct,0.0590433030155105
+primary_energy_per_capita_kwh,0.058557780666066345
+low_carbon_electricity_pct,0.055061818466762495
+clean_cooking_fuels_pct,0.05320204109096588
+entity,0.03401588590610655
+renewable_capacity_per_capita,0.029220650088754095
+gdp_per_capita,0.019005302723791154
+year,0.0024179982036118927

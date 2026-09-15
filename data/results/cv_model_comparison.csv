@@ -1,0 +1,6 @@
+rank,model,mean_rmse,std_err,selected_parameters
+1,Random Forest,0.07919769360206584,0.011312986558162421,mtry = 5; trees = 500; min_n = 10
+2,Linear Regression,0.08294566071928994,0.0027589621907102933,None
+3,Elastic Net,0.08413001372489863,0.0027226454640465396,penalty = 1e-04; mixture = 0.333
+4,Gradient-Boosted Trees,0.08983697742072291,0.006056342711597421,learn_rate = 0.1; depth = 2; trees = 1000; min_n = 10
+5,K-Nearest Neighbors,0.09109778120095274,0.005412741126977084,K = 7

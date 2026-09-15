@@ -1,0 +1,6 @@
+model,dummy_variables,center,scale,tuned,tuned_parameters,grid_size
+Linear Regression,Yes,No,No,No,None,1
+Elastic Net,Yes,Yes,Yes,Yes,penalty; mixture,20
+K-Nearest Neighbors,Yes,Yes,Yes,Yes,neighbors,6
+Random Forest,No,No,No,Yes,mtry,6
+Gradient-Boosted Trees,Yes,No,No,Yes,learn_rate; tree_depth,6
