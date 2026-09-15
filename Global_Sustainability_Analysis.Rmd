@@ -1,5 +1,5 @@
 ---
-title: "Predicting National Carbon Dioxide Emissions from Sustainability Indicators"
+title: "Predicting National Carbon Dioxide Emissions from Global Sustainability Indicators"
 subtitle: "PSTAT 131 Final Project"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
@@ -32,15 +32,31 @@ Countries differ widely in their energy systems, economic conditions, access to 
 
 The primary research question is: **How accurately can a country's carbon dioxide emissions be predicted from its economic, energy, social, and geographic characteristics?** This is a predictive rather than causal analysis. Relationships identified by the models should not be interpreted as evidence that changing one predictor would directly cause emissions to change.
 
-# Exploratory Data Analysis
+# Data Description
 
 ## Data source and structure
 
 <!-- Describe and formally cite the data source. Summarize the observational unit, years, entities, variables, and outcome. -->
 
+## Variable roles and definitions
+
+<!-- Identify the outcome, candidate predictors, identifiers, and variables excluded from modeling. Refer readers to the complete codebook. -->
+
+# Data Preparation
+
+## Data cleaning
+
+<!-- Document column-name standardization, type conversion, validity checks, duplicate handling, and any row or variable exclusions. -->
+
 ## Missing data
 
 <!-- Report the amount and pattern of missingness and explain how missing values will be handled. -->
+
+## Final modeling dataset
+
+<!-- Summarize the prepared dataset without using information from the future test set. -->
+
+# Exploratory Data Analysis
 
 ## Distribution of carbon dioxide emissions
 
