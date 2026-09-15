@@ -187,7 +187,12 @@ correlation_long <- as.data.frame(as.table(correlation_matrix)) |>
   rename(variable_1 = Var1, variable_2 = Var2, correlation = Freq) |>
   mutate(
     variable_1 = factor(variable_1, levels = rev(correlation_variables)),
-    variable_2 = factor(variable_2, levels = correlation_variables)
+    variable_2 = factor(variable_2, levels = correlation_variables),
+    correlation_label = if_else(
+      abs(correlation) > 0.995,
+      "1",
+      sprintf("%.2f", correlation)
+    )
   )
 
 short_labels <- c(
@@ -205,37 +210,47 @@ short_labels <- c(
   log10_co2_emissions = "CO2 emissions"
 )
 
-correlation_plot <- ggplot(correlation_long, aes(x = variable_2, y = variable_1, fill = correlation)) +
-  geom_tile(color = "white", linewidth = 0.3) +
+correlation_plot <- ggplot(correlation_long, aes(x = variable_2, y = variable_1)) +
+  geom_tile(fill = "white", color = "#D2D2D2", linewidth = 0.45) +
+  geom_point(
+    aes(size = abs(correlation), fill = correlation),
+    shape = 21,
+    color = "#6F6F6F",
+    stroke = 0.25
+  ) +
+  geom_text(aes(label = correlation_label), color = "black", size = 2.8) +
+  scale_size_area(max_size = 14, limits = c(0, 1), guide = "none") +
   scale_fill_gradient2(
-    low = "#B95B59",
+    low = "#C96A5A",
     mid = "white",
-    high = "#3F6F8F",
+    high = "#2B6087",
     midpoint = 0,
     limits = c(-1, 1),
     name = "Spearman\ncorrelation"
   ) +
-  scale_x_discrete(labels = short_labels) +
-  scale_y_discrete(labels = rev(short_labels)) +
-  coord_equal() +
+  scale_x_discrete(labels = short_labels, position = "bottom") +
+  scale_y_discrete(labels = short_labels) +
+  coord_equal(clip = "off") +
   labs(
     title = "Correlation among numeric modeling variables",
-    subtitle = "Spearman correlation is used to reduce sensitivity to skewness",
+    subtitle = "Circle size and color show the strength and direction of each correlation",
     x = NULL,
     y = NULL
   ) +
   theme_report(10) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
     panel.grid = element_blank(),
-    legend.position = "right"
+    panel.background = element_rect(fill = "white", color = NA),
+    legend.position = "right",
+    plot.margin = margin(10, 20, 20, 10)
   )
 
 ggsave(
   "graphs/numeric_correlation_heatmap.png",
   correlation_plot,
-  width = 10,
-  height = 8.2,
+  width = 10.8,
+  height = 9.2,
   dpi = 220
 )
 
@@ -262,4 +277,3 @@ readr::write_csv(
 )
 
 message("EDA figures and summaries saved.")
-

@@ -200,7 +200,7 @@ knitr::include_graphics("graphs/selected_predictor_distributions.png")
 
 ## Correlation Between Numeric Variables
 
-Figure 6 shows a Spearman correlation heatmap. Several predictors have similar information. Electricity access, clean-cooking access, GDP per capita, and primary energy use are positively correlated. Renewable capacity is related to renewable electricity and the low-carbon share. Fossil electricity has the strongest numeric correlation with the outcome. Correlated predictors may make linear regression coefficients unstable. I include elastic net and tree models for comparison.
+Figure 6 shows a Spearman correlation plot. Larger circles mean stronger correlations. Blue circles are positive, and red circles are negative. The number in each circle gives the correlation value. Several predictors have similar information. Electricity access, clean-cooking access, GDP per capita, and primary energy use are positively correlated. Renewable capacity is related to renewable electricity and the low-carbon share. Fossil electricity has the strongest numeric correlation with the outcome. Correlated predictors may make linear regression coefficients unstable. I include elastic net and tree models for comparison.
 
 ```{r correlation-heatmap, fig.cap="Figure 6. Spearman correlations among numeric modeling variables."}
 knitr::include_graphics("graphs/numeric_correlation_heatmap.png")
