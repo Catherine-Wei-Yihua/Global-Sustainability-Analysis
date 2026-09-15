@@ -1,7 +1,8 @@
 ---
 title: "Predicting National Carbon Dioxide Emissions from Global Sustainability Indicators"
 subtitle: "PSTAT 131 Final Project"
-date: "`r format(Sys.Date(), '%B %d, %Y')`"
+author: "Yihua Wei"
+date: "September 14, 2026"
 output:
   html_document:
     toc: true
@@ -12,161 +13,380 @@ output:
     df_print: paged
 ---
 
+<style>
+body { line-height: 1.65; }
+h1.title {
+  color: #111111;
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 1.15;
+  margin-bottom: 24px;
+}
+h3.subtitle {
+  color: #000000;
+}
+h4.author, h4.date {
+  color: #000000;
+}
+h1:not(.title) {
+  color: #111111;
+  font-size: 36px;
+  font-weight: 500;
+  margin-top: 42px;
+}
+h2 {
+  color: #24435B;
+}
+.table-responsive { overflow-x: auto; }
+table { font-size: 0.90em; }
+.caption { color: #5E6A71; font-style: italic; }
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo = TRUE,
+  echo = FALSE,
   warning = FALSE,
   message = FALSE,
-  fig.path = "graphs/",
   fig.align = "center",
-  out.width = "90%"
+  out.width = "92%"
 )
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(knitr)
+})
 
 options(scipen = 999)
 set.seed(131)
+
+raw_data <- readr::read_csv("data/raw/sustainable_energy_dataset.csv", show_col_types = FALSE)
+prepared_data <- readr::read_csv("data/processed/sustainability_clean.csv", show_col_types = FALSE)
+codebook <- readr::read_csv("data/codebook.csv", show_col_types = FALSE)
+missing_summary <- readr::read_csv("data/results/missing_summary.csv", show_col_types = FALSE)
+preparation_summary <- readr::read_csv("data/results/preparation_summary.csv", show_col_types = FALSE)
+split_summary <- readr::read_csv("data/results/split_summary.csv", show_col_types = FALSE)
+recipe_summary <- readr::read_csv("data/results/recipe_tuning_summary.csv", show_col_types = FALSE)
+cv_comparison <- readr::read_csv("data/results/cv_model_comparison.csv", show_col_types = FALSE)
+selected_models <- readr::read_csv("data/results/selected_models.csv", show_col_types = FALSE)
+test_metrics <- readr::read_csv("data/results/final_test_metrics.csv", show_col_types = FALSE)
+importance_data <- readr::read_csv("data/results/random_forest_variable_importance.csv", show_col_types = FALSE)
 ```
 
 # Introduction
 
+Rapid environmental change is already affecting ecosystems, economies, and everyday life around the world. Climate change is altering temperatures, weather patterns, and the conditions on which communities depend, leading many countries and organizations to pursue cleaner technologies and strategies for reducing greenhouse-gas emissions. Carbon dioxide is one of the most important contributors to human-driven climate change, and much of it is associated with the production and consumption of energy. Consequently, two central sustainability challenges are how to reduce major sources of CO2 and how to replace fossil-fuel-based energy with lower-carbon alternatives. If economic, social, geographic, and energy-related factors can be combined to predict national CO2 emissions accurately, the resulting model can provide a useful starting point for identifying the conditions most closely associated with high emissions and for directing further investigation toward possible reduction strategies.
+
 ## What Are We Going to Explore?
 
-Countries differ widely in their energy systems, economic conditions, access to modern energy services, and resulting carbon dioxide emissions. The dataset used in this project combines country-level measures of electricity access, energy sources, renewable-energy use, economic performance, and geographic characteristics from 2000 through 2020. These variables provide an opportunity to examine which observed national characteristics are most useful for predicting reported carbon dioxide emissions.
+Carbon dioxide (CO2) emissions are an important indicator of the pressure that human activity places on the climate. In this project, the outcome is each country's reported annual CO2 emissions, measured in kilotonnes (kt), rather than emissions per person. The central research question is: **How accurately can country-level CO2 emissions be predicted from economic, social, energy, geographic, and temporal characteristics?** The candidate predictors describe electricity access, access to clean cooking fuels, renewable generating capacity, GDP per capita, land area, electricity generation by source, the low-carbon share of electricity, primary energy consumption per person, country, and year.
+
+The analysis compares five regression approaches: linear regression, elastic net, K-nearest neighbors (KNN), random forest, and gradient-boosted trees. Because emissions vary greatly among countries, the response is modeled on a base-10 logarithmic scale. Models are tuned and compared with the same ten cross-validation folds, and only the best one or two are evaluated on the most recent years held aside as a test set.
 
 ## Why Do We Want to Predict This?
 
-The primary research question is: **How accurately can a country's carbon dioxide emissions be predicted from its economic, energy, social, and geographic characteristics?** This is a predictive rather than causal analysis. Relationships identified by the models should not be interpreted as evidence that changing one predictor would directly cause emissions to change.
+This topic connects to my previous sustainability project and to my current work in sustainability at UC Santa Barbara. A model that predicts emissions well could help identify the measurements that are most informative about national emission levels and indicate where more focused investigation may be valuable. In the longer term, this information may support more targeted monitoring and policy research.
+
+This project is predictive, not causal. A variable can be useful for prediction because it summarizes country size, development, infrastructure, or other correlated conditions; that does not prove that directly changing the variable would cause emissions to change. The analysis therefore uses phrases such as *predictive importance* rather than *causal effect*.
 
 # Data Description
 
-## Data source and structure
+## Data Source and Structure
 
-<!-- Keep this subsection brief. Introduce the dataset source with its Kaggle link embedded in the sentence, load the raw CSV with read_csv(), show a brief glimpse(), and describe the country-year observational unit and time/geographic coverage in one or two sentences. -->
+The data come from the [Global Data on Sustainable Energy (2000–2020)](https://www.kaggle.com/datasets/anshtanwar/global-data-on-sustainable-energy/data) dataset published on Kaggle. It can be loaded directly from the submitted raw-data file as follows.
+
+```{r load-and-glimpse, echo=TRUE}
+energy_raw <- readr::read_csv(
+  "data/raw/sustainable_energy_dataset.csv",
+  show_col_types = FALSE
+)
+dplyr::glimpse(energy_raw)
+```
+
+Each row is a country- or region-year observation. The raw file covers 176 entities from 2000 through 2020; not every entity has information for every field and year.
 
 ## Variable Selection
 
-<!-- Use dim() to report the original dimensions, display the complete codebook, define the CO2-emissions outcome, and introduce the candidate predictors. -->
+The R function `dim()` confirms that the original dataset contains `r dim(raw_data)[1]` observations and `r dim(raw_data)[2]` variables.
+
+```{r dimensions, echo=TRUE}
+dim(energy_raw)
+```
+
+The complete codebook below identifies all original columns. The *Role* column distinguishes the response and selected predictors from variables that were not used in the final models.
+
+```{r codebook-table, results='asis'}
+codebook |>
+  select(
+    `Original variable` = original_variable,
+    `Analysis name` = clean_variable,
+    Type = type,
+    Role = role,
+    Description = description
+  ) |>
+  kable(
+    format = "html",
+    caption = "Complete codebook for the 21 variables in the raw dataset",
+    escape = TRUE,
+    table.attr = "class='table table-striped table-hover table-condensed'"
+  )
+```
+
+The outcome is `Value_co2_emissions_kt_by_country`, renamed `co2_emissions_kt`, which records total national CO2 emissions in kilotonnes. `Entity` and `Year` are retained as country and time predictors. The economic and social group contains electricity access, clean-cooking-fuel access, renewable generating capacity per capita, GDP per capita, and land area. The energy group contains electricity generated from fossil fuels, nuclear power, and renewables; the percentage of low-carbon electricity; and primary energy consumption per person. These group labels organize the exploratory analysis only; the models use all selected predictors together.
 
 # Data Preparation
 
-## Data cleaning
+## Data Cleaning
 
-<!-- Standardize variable names, correct variable types, and check duplicate observations and duplicate country-year combinations. -->
+The preparation script uses `janitor::clean_names()` to produce consistent snake-case names, converts year to integer, treats country as categorical, and parses land area and population density as numeric values. The latter is included in the complete codebook but not selected for modeling. There were no exact duplicate records, no duplicate country-year combinations, and no nonpositive observed outcome values.
 
-## Missing data
+## Missing Data
 
-<!-- Use vis_miss() to assess the amount and pattern of missingness. Check whether missing outcome values are limited or concentrated in a particular year. Remove observations with missing outcomes when appropriate; if missingness is extensive or complex, explain the final handling decision. -->
+Figure 1 displays missingness in the selected variables using `naniar::vis_miss()`. Renewable generating capacity per capita had the most missing values (`r missing_summary |> filter(variable == "renewable_capacity_per_capita") |> pull(missing)` rows, `r scales::percent((missing_summary |> filter(variable == "renewable_capacity_per_capita") |> pull(percent))/100, accuracy = 0.1)`), followed by the outcome (`r missing_summary |> filter(variable == "co2_emissions_kt") |> pull(missing)` rows, `r scales::percent((missing_summary |> filter(variable == "co2_emissions_kt") |> pull(percent))/100, accuracy = 0.1)`) and GDP per capita (`r missing_summary |> filter(variable == "gdp_per_capita") |> pull(missing)` rows, `r scales::percent((missing_summary |> filter(variable == "gdp_per_capita") |> pull(percent))/100, accuracy = 0.1)`). All 175 outcome observations in 2020 were missing; the earlier years each had 12 to 16 missing outcome values.
+
+```{r missing-data-code, echo=TRUE, fig.show='hide'}
+selected_missing_data <- energy_raw |>
+  select(
+    Entity,
+    Year,
+    `Access to electricity (% of population)`,
+    `Access to clean fuels for cooking`,
+    `Renewable-electricity-generating-capacity-per-capita`,
+    gdp_per_capita,
+    `Land Area(Km2)`,
+    `Electricity from fossil fuels (TWh)`,
+    `Electricity from nuclear (TWh)`,
+    `Electricity from renewables (TWh)`,
+    `Low-carbon electricity (% electricity)`,
+    `Primary energy consumption per capita (kWh/person)`,
+    Value_co2_emissions_kt_by_country
+  )
+
+naniar::vis_miss(
+  selected_missing_data,
+  sort_miss = TRUE,
+  show_perc_col = TRUE,
+  warn_large_data = FALSE
+)
+```
+
+```{r missing-figure, fig.cap="Figure 1. Missingness pattern among the selected outcome and predictor variables."}
+knitr::include_graphics("graphs/missing_data_pattern.png")
+```
+
+Rows with a missing outcome were removed because they cannot contribute to supervised model training or evaluation. Because the planned recipes do not impute predictors, rows missing any selected predictor were then removed consistently before splitting. This complete-case choice avoids inventing values but has an important cost: only `r nrow(prepared_data)` of the original `r nrow(raw_data)` rows remain. Its possible effect on generalizability is discussed in the limitations.
 
 ## Prepared Dataset
 
-<!-- Report the retained observations and variables, summarize the completed preparation steps, and identify the cleaned dataset saved under data/processed/. -->
+The final prepared dataset contains `r nrow(prepared_data)` observations from `r n_distinct(prepared_data$entity)` countries and covers `r min(prepared_data$year)` through `r max(prepared_data$year)`. It contains the 12 selected predictors, the original CO2 outcome, and its base-10 logarithm. The cleaned data are stored in `data/processed/sustainability_clean.csv`; all preparation operations are reproducible from `code/01_data_preparation.R`.
+
+```{r preparation-table}
+preparation_summary |>
+  rename(Stage = stage, Observations = observations) |>
+  kable(caption = "Observations retained through data preparation")
+```
 
 # Exploratory Data Analysis
 
-## Distribution of carbon dioxide emissions
+## Distribution of Carbon Dioxide Emissions
 
-<!-- Show the outcome distribution on its original scale and, if useful, its logarithmic scale. Discuss skewness, extreme values, transformations, and whether outcome stratification is needed. -->
+On the original scale, CO2 emissions are extremely right-skewed (Figure 2). The prepared data have a median of about 5,550 kt, a mean of 121,445 kt, and a maximum of 10,707,220 kt; the mean is nearly 22 times the median. A few very large emitters would therefore dominate squared errors on the raw scale. The logarithmic distribution is far less concentrated and motivates modeling `log10(co2_emissions_kt)`. This more balanced response is also used to form strata for cross-validation.
+
+```{r outcome-distribution, fig.cap="Figure 2. Distribution of country-level CO2 emissions before and after a base-10 logarithmic transformation."}
+knitr::include_graphics("graphs/co2_distribution.png")
+```
 
 ## Carbon Dioxide Emissions Over Time
 
-<!-- Use a line plot with year on the x-axis and briefly interpret the temporal pattern. -->
+The median among retained countries rises from 4,030 kt in 2000 to 7,690 kt in 2019 (Figure 3), although the path is not strictly increasing. The middle 50% of observations also spans a wide range throughout the period. The upward shift supports reserving later years for testing: a random train/test split would make the evaluation less representative of prediction into a more recent period.
 
-## Relationships between emissions and selected predictors
+```{r time-trend, fig.cap="Figure 3. Annual median and interquartile range of country-level CO2 emissions."}
+knitr::include_graphics("graphs/co2_over_time.png")
+```
 
-<!-- Use scatterplots for predictors selected after inspecting the data. Add fitted trend lines only where they aid interpretation. -->
+## Relationships Between Emissions and Selected Predictors
+
+The three strongest numeric relationships by absolute Spearman correlation are fossil-fuel electricity generation, renewable electricity generation, and land area (Figure 4). Fossil electricity has a particularly strong monotonic relationship with log10 emissions ($\rho = 0.906$). Renewable generation ($\rho = 0.549$) and land area ($\rho = 0.511$) also rise with emissions overall, but their curves and clusters show that a single straight line will not capture every relationship. These are associations across country-year observations, not estimates of causal effects.
+
+```{r relationship-figure, fig.cap="Figure 4. Log10 CO2 emissions versus the three numeric predictors with the largest absolute Spearman correlations."}
+knitr::include_graphics("graphs/emissions_predictor_relationships.png")
+```
 
 ## Distributions of Selected Predictors
 
-<!-- Use histograms for predictors selected after inspecting the data. Discuss skewness, unusual values, and possible transformations. -->
+GDP per capita, renewable capacity per capita, and primary energy use per capita are themselves unevenly distributed (Figure 5). The plot uses `log10(x + 1)` so that both small and large country-year values remain visible, including zeros where applicable. Their skewness strengthens the case for normalized inputs in distance-based and penalized models; scaling is performed inside the resampling workflow so that validation data do not influence preprocessing estimates.
+
+```{r predictor-distributions, fig.cap="Figure 5. Distributions of three selected predictors after log10(x + 1) is used for display."}
+knitr::include_graphics("graphs/selected_predictor_distributions.png")
+```
 
 ## Correlation Between Numeric Variables
 
-<!-- Present a correlation heatmap and discuss the strongest relationships with the outcome and potentially redundant predictors. -->
+Figure 6 shows that several predictors carry overlapping information. Electricity access, clean-cooking access, GDP per capita, and primary energy per capita are positively correlated, while renewable generating capacity is related to renewable electricity and the low-carbon share. Fossil electricity remains the numeric predictor most strongly correlated with the response. Because correlations among predictors can make ordinary coefficients unstable, elastic net regularization and tree-based models are useful comparisons with standard linear regression.
 
-## Exploratory findings
+```{r correlation-heatmap, fig.cap="Figure 6. Spearman correlations among numeric modeling variables."}
+knitr::include_graphics("graphs/numeric_correlation_heatmap.png")
+```
 
-<!-- Summarize the main patterns and the resulting stratification, transformation, recipe, and modeling decisions. -->
+## Exploratory Findings
+
+EDA led to four modeling decisions. First, emissions are modeled on the log10 scale because the original distribution is extremely skewed. Second, the time pattern is respected through a chronological test split. Third, the log outcome is stratified during cross-validation so that each fold contains observations from across the response distribution. Fourth, model-specific recipes handle scale and categorical country information rather than modifying the full dataset before resampling.
 
 # Model Setup
 
 ## Data Split
 
-<!-- Sort by year, train on the earlier years, and reserve the most recent years for testing, targeting an approximately 80/20 chronological split. Compare the two outcome distributions and keep the test set untouched until final evaluation. -->
+The 20 usable years were sorted chronologically. The first 16 years, 2000–2015, form the training set (`r split_summary |> filter(set == "Training") |> pull(observations)` observations; `r round(split_summary |> filter(set == "Training") |> pull(percent), 1)`%), and 2016–2019 form the untouched testing set (`r split_summary |> filter(set == "Testing") |> pull(observations)` observations; `r round(split_summary |> filter(set == "Testing") |> pull(percent), 1)`%). This is a time-based partition rather than a random outcome-stratified split: retaining the order is necessary to evaluate whether relationships learned from earlier observations transfer to later years. The training median is approximately 5,150 kt, compared with 7,395 kt in testing, so the design also evaluates performance under a modest temporal shift.
 
 ## Ten-Fold Cross-Validation
 
-<!-- Create 10 folds from the training data only, stratify by the outcome, and reuse the same folds for all five models. Explain the process for a general audience. -->
+All model selection occurs within the training set. The training observations are divided into ten folds, with `log10(co2_emissions_kt)` binned into five strata so each fold represents the outcome distribution. Each model is fit on nine folds and assessed on the remaining fold, and this process repeats until every fold has served as validation data. The same folds and random seed are reused for all models, making their mean RMSE values directly comparable.
 
 ## Recipe Creation and Tuning Grids
 
-<!-- Explain categorical-predictor and dummy-variable handling, centering and scaling where required, and the tuning grids. Include one summary-table row per model with dummy-variable, centering, scaling, tuning, tuned-parameter, and grid-size information. -->
+Country is a categorical predictor. Linear regression, elastic net, KNN, and boosted trees receive dummy variables, while the `ranger` random forest engine handles the factor directly. Elastic net and KNN inputs are centered and scaled because their penalties or distances depend on numeric magnitude. Land area is constant within country and is therefore exactly redundant with the complete set of country indicators in the linear model; it is removed from that recipe only, while remaining available to the other four models. Zero-variance terms are removed in all recipes, and linear dependencies are checked for linear regression. All preprocessing is estimated separately inside each cross-validation analysis fold.
+
+```{r recipe-grid-table}
+recipe_summary |>
+  rename(
+    Model = model,
+    `Dummy variables` = dummy_variables,
+    Center = center,
+    Scale = scale,
+    Tuned = tuned,
+    `Tuned parameters` = tuned_parameters,
+    `Grid size` = grid_size
+  ) |>
+  kable(caption = "Model-specific preprocessing and tuning grids")
+```
+
+Elastic net evaluates 4 mixture levels from 0 to 1 crossed with 5 penalty levels. KNN evaluates $K \in \{7,15,25,35,45,65\}$. Random forest fixes 500 trees and `min_n = 10`, then evaluates six `mtry` values: 1, 3, 5, 7, 9, and 12. The modest node size and fixed tree count limit computation while allowing enough flexibility. Boosted trees fix 1,000 trees and `min_n = 10`, then cross learning rates 0.01, 0.05, and 0.10 with tree depths 1 and 2.
 
 # Model Fitting
 
 ## Model Evaluation Metric
 
-<!-- Define RMSE and explain its direction in approximately three sentences. State that all models use mean RMSE from the same 10-fold cross-validation folds. -->
+Root mean squared error (RMSE) is the square root of the average squared prediction error. Lower values are better, and zero represents perfect prediction. Here the primary RMSE is calculated for log10 emissions using the same ten folds for every model.
 
 ## Linear Regression
 
-<!-- Briefly describe the specification and workflow, report cross-validation RMSE, and interpret the result. Keep all fitting code outside the rendered report. -->
+Linear regression provides an additive baseline with one coefficient for each retained numeric or dummy term. It has no tuning grid and achieved a mean cross-validation RMSE of **0.0829** (standard error 0.0028). Its strong performance suggests that country indicators and the log transformation make much of the predictive structure approximately additive, although exact coefficient interpretation is complicated by correlated predictors and country indicators.
 
 ## Elastic Net
 
-<!-- Tune mixture over 4 levels from 0 to 1 and penalty over 5 levels. Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+Elastic net combines ridge and lasso penalties and can stabilize a regression with correlated inputs. The best grid point used a penalty of 0.0001 and mixture of 0.333, producing mean RMSE **0.0841** (standard error 0.0027). The small selected penalty makes its result close to the ordinary linear model, while larger penalties generally discarded too much useful signal.
+
+```{r elastic-tuning, fig.cap="Figure 7. Elastic net mean cross-validation RMSE across penalty and mixture values."}
+knitr::include_graphics("graphs/elastic_net_tuning_rmse.png")
+```
 
 ## K-Nearest Neighbors
 
-<!-- Tune K over c(7, 15, 25, 35, 45, 65). Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+KNN predicts from nearby standardized observations and does not assume a global functional form. The lowest mean RMSE, **0.0911** (standard error 0.0054), occurred at $K=7$. Performance deteriorated as $K$ increased, indicating that broad neighborhoods averaged together countries with meaningfully different emissions.
+
+```{r knn-tuning, fig.cap="Figure 8. KNN mean cross-validation RMSE across the six candidate neighborhood sizes."}
+knitr::include_graphics("graphs/knn_tuning_rmse.png")
+```
 
 ## Random Forest
 
-<!-- Fix trees at 500 and min_n at 10. Tune mtry over 6 levels selected after the final predictor count is known. Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+Random forest averages many regression trees and can learn nonlinearities and interactions without scaling. With 500 trees and `min_n = 10`, the best setting was `mtry = 5`. Its mean RMSE of **0.0792** (standard error 0.0113) was the lowest of the five models, though its fold-to-fold uncertainty was also the largest among the top three models.
+
+```{r random-forest-tuning, fig.cap="Figure 9. Random forest mean cross-validation RMSE across six mtry values."}
+knitr::include_graphics("graphs/random_forest_tuning_rmse.png")
+```
 
 ## Gradient-Boosted Trees
 
-<!-- Fix trees at 1000 and min_n at 10. Tune learn_rate over c(0.01, 0.05, 0.1) and tree_depth over c(1, 2). Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+Gradient boosting builds trees sequentially so that later trees correct earlier errors. The best combination used learning rate 0.10 and depth 2, with 1,000 trees and `min_n = 10`. Its mean RMSE was **0.0898** (standard error 0.0061); shallower trees or slower learning within the fixed 1,000-tree budget underfit relative to this setting.
+
+```{r boosted-tuning, fig.cap="Figure 10. Gradient-boosted-tree mean cross-validation RMSE across learning rates and tree depths."}
+knitr::include_graphics("graphs/boosted_trees_tuning_rmse.png")
+```
 
 # Best Model Selection
 
 ## Cross-Validation Performance
 
-<!-- Rank the five models by mean cross-validation RMSE. Report RMSE standard errors and the selected hyperparameters in a concise table. -->
+The ranking in Table 4 is based only on training-set cross-validation. Random forest ranks first, followed closely by linear regression and elastic net. KNN has the largest error, but all five models have mean log10 RMSE below 0.10.
+
+```{r cv-comparison-table}
+cv_comparison |>
+  transmute(
+    Rank = rank,
+    Model = model,
+    `Mean RMSE` = round(mean_rmse, 4),
+    `Standard error` = round(std_err, 4),
+    `Selected hyperparameters` = selected_parameters
+  ) |>
+  kable(caption = "Cross-validation performance and selected hyperparameters")
+```
 
 ## RMSE Comparison Plot
 
-<!-- Compare mean RMSE for all five models in a horizontal point plot with standard-error bars. -->
+Figure 11 makes the closeness of the leading models visible. Random forest has the smallest point estimate, but its one-standard-error interval overlaps those of linear regression and elastic net. This cautions against treating the numerical ranking as a large practical separation.
+
+```{r rmse-comparison-figure, fig.cap="Figure 11. Mean ten-fold cross-validation RMSE with one-standard-error bars."}
+knitr::include_graphics("graphs/cv_rmse_model_comparison.png")
+```
 
 ## Best Selected Model
 
-<!-- Identify the lowest-RMSE model, determine whether the second-best model is close, and decide whether one or two models proceed to final testing. -->
+Random forest has the lowest mean RMSE. The difference between it and second-place linear regression is only 0.0037, smaller than their combined standard error of approximately 0.0116. Therefore, these two models are sufficiently close that both proceed to the final test set; the other three models do not.
 
 # Final Test Performance
 
 ## Finalize the Selected Model
 
-<!-- Finalize the selected workflow with its chosen hyperparameters, fit it on the complete training set, and generate predictions for the untouched testing set. -->
+The random forest workflow was finalized with `mtry = 5`, 500 trees, and `min_n = 10`; the linear workflow required no tuned parameters. Each workflow was then fit once on all 1,676 training observations and used to predict the 424 untouched observations from 2016–2019. No test outcome was used in preprocessing, tuning, or model selection.
 
 ## Test RMSE
 
-<!-- Report testing RMSE and compare it with cross-validation RMSE to assess the generalization gap. -->
+Random forest achieved the better primary test result: log10 RMSE **0.1113**, compared with **0.1235** for linear regression. These values correspond to multiplicative error factors of approximately 1.29 and 1.33, respectively. For example, an error of 0.1113 on the log10 scale is roughly a 29% multiplicative factor, though individual errors can be larger or smaller. Both test errors exceed their cross-validation estimates, indicating that forecasting later years is harder than predicting held-out observations drawn randomly from the earlier period.
 
-## Predicted versus Observed Values
+```{r final-test-table}
+test_metrics |>
+  transmute(
+    Model = model,
+    `CV RMSE (log10)` = round(cv_rmse_log10, 4),
+    `Test RMSE (log10)` = round(test_rmse_log10, 4),
+    `Generalization gap` = round(generalization_gap, 4),
+    `Multiplicative factor` = round(multiplicative_error_factor, 2),
+    `Test RMSE (original kt)` = scales::comma(round(test_rmse_original_kt))
+  ) |>
+  kable(caption = "Performance of the two selected models on the untouched test years")
+```
 
-<!-- Show a predicted-versus-observed scatterplot with a perfect-prediction reference line and interpret the pattern of errors. -->
+The raw-scale RMSE tells a different secondary story: linear regression has the smaller value because this metric is dominated by a few extremely large emitters. Since the log-scale metric was chosen before model fitting to balance relative errors across countries, random forest remains the primary selected model. Reporting both scales makes this consequence of the evaluation choice transparent.
+
+## Predicted Versus Observed Values
+
+Most predictions lie close to the diagonal reference line over several orders of magnitude (Figure 12), with correlations above 0.99 between predicted and observed log emissions for both models. Random forest has a smaller median absolute log error, while its largest misses include underpredictions for several countries in the most recent years. The plot also shows why the log-scale evaluation is useful: low- and medium-emission countries remain visible instead of being compressed by the largest national totals.
+
+```{r prediction-figure, fig.cap="Figure 12. Predictions from the selected models versus observed test-set emissions."}
+knitr::include_graphics("graphs/test_predicted_vs_observed.png")
+```
 
 ## Model Interpretation
 
-<!-- Optional: retain only if the selected model supports a useful variable-importance or coefficient plot. -->
+Permutation importance for the final random forest shows that fossil-fuel electricity generation is by far the most influential predictor for its accuracy (Figure 13). Land area, renewable electricity generation, and nuclear generation follow. Renewable electricity can be important because it also reflects the overall size of a country's electricity system, not because renewable energy necessarily increases emissions. Likewise, correlated predictors can divide or exchange importance. The ranking identifies predictive contributions within this fitted model and must not be read as a causal ordering.
+
+```{r importance-figure, fig.cap="Figure 13. Ten largest random forest permutation-importance values."}
+knitr::include_graphics("graphs/random_forest_variable_importance.png")
+```
 
 # Conclusion
 
 ## Main Findings
 
-<!-- Answer the research question, identify the best model, report its cross-validation and testing RMSE, and summarize predictive performance in a complete paragraph. -->
+Country-level CO2 emissions can be predicted with useful accuracy from the selected sustainability indicators when emissions are modeled on a logarithmic scale. Among five candidate approaches, random forest had the lowest mean cross-validation RMSE (0.0792), but linear regression was close enough (0.0829) to justify testing both. On the chronologically later 2016–2019 observations, random forest retained the best primary performance with log10 RMSE 0.1113, corresponding to a multiplicative error factor of about 1.29; linear regression produced 0.1235. KNN was the weakest cross-validation model, while elastic net and boosted trees fell between the leading models and KNN.
+
+The variable-importance analysis points to fossil-fuel electricity generation as the strongest predictive input, followed by country-scale and electricity-system measurements such as land area, renewable generation, and nuclear generation. This is consistent with the exploratory relationships, but it does not establish which interventions would reduce emissions. The results support using the model for prediction and for prioritizing follow-up questions, not for estimating policy effects.
 
 ## Limitations
 
-<!-- Discuss only limitations supported by the completed analysis and explain how they may affect the results. End with one brief future-research sentence to satisfy the rubric. -->
+Missingness is the largest data limitation. Complete-case preparation retained 2,100 of 3,649 raw observations, and countries with incomplete renewable capacity, GDP, or other selected indicators may differ systematically from countries that remain. This can make the results more representative of countries with stronger data coverage and can reduce generalizability. In addition, 2020 emissions were entirely missing, so the study cannot evaluate the most recent raw-data year.
+
+The data contain repeated measurements of countries. Random cross-validation within the early years can place different years from the same country in both analysis and validation folds, which may make cross-validation look more optimistic; the later-year test set partly addresses this, and its larger errors confirm a temporal generalization gap. The country predictor also means that the fitted workflows are designed for countries observed during training and should not be assumed to work for unseen countries. Finally, total national emissions are strongly related to country and energy-system size, and neither correlations nor random-forest importance can distinguish causation from association. Future work could compare grouped country-level resampling, principled missing-data imputation, and genuinely causal designs using newer data.
 
 # References
 
