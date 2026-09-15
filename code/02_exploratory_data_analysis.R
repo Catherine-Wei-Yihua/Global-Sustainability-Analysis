@@ -38,25 +38,18 @@ annual_summary <- eda_data |>
   group_by(year) |>
   summarise(
     median_co2 = median(co2_emissions_kt),
-    q1_co2 = quantile(co2_emissions_kt, 0.25),
-    q3_co2 = quantile(co2_emissions_kt, 0.75),
     countries = n(),
     .groups = "drop"
   )
 
 time_plot <- ggplot(annual_summary, aes(x = year, y = median_co2)) +
-  geom_ribbon(
-    aes(ymin = q1_co2, ymax = q3_co2),
-    fill = report_colors[["light_blue"]],
-    alpha = 0.45
-  ) +
   geom_line(color = report_colors[["navy"]], linewidth = 1) +
   geom_point(color = report_colors[["navy"]], size = 2) +
   scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
   scale_x_continuous(breaks = seq(min(annual_summary$year), max(annual_summary$year), by = 2)) +
   labs(
     title = "Median country-level CO2 emissions increased over time",
-    subtitle = "The shaded band spans the middle 50% of country-year emissions",
+    subtitle = "Each point shows the median across countries in that year",
     x = "Year",
     y = "CO2 emissions (kilotonnes, log scale)"
   )

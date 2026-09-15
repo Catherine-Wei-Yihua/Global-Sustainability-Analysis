@@ -39,6 +39,23 @@ options(scipen = 999)
 set.seed(131)
 
 raw_data <- readr::read_csv("data/raw/sustainable_energy_dataset.csv", show_col_types = FALSE)
+selected_missing_data <- raw_data |>
+  janitor::clean_names() |>
+  select(
+    entity,
+    year,
+    access_to_electricity_percent_of_population,
+    access_to_clean_fuels_for_cooking,
+    renewable_electricity_generating_capacity_per_capita,
+    gdp_per_capita,
+    land_area_km2,
+    electricity_from_fossil_fuels_t_wh,
+    electricity_from_nuclear_t_wh,
+    electricity_from_renewables_t_wh,
+    low_carbon_electricity_percent_electricity,
+    primary_energy_consumption_per_capita_k_wh_person,
+    value_co2_emissions_kt_by_country
+  )
 prepared_data <- readr::read_csv("data/processed/sustainability_clean.csv", show_col_types = FALSE)
 codebook <- readr::read_csv("data/codebook.csv", show_col_types = FALSE)
 missing_summary <- readr::read_csv("data/results/missing_summary.csv", show_col_types = FALSE)
@@ -123,23 +140,6 @@ The variable names are standardized with `janitor::clean_names()`. I change year
 Figure 1 shows the missing data from `naniar::vis_miss()`. I use it to check the amount and pattern of missing values. Renewable capacity per capita has the most missing values. It has `r missing_summary |> filter(variable == "renewable_capacity_per_capita") |> pull(missing)` missing rows, or `r scales::percent((missing_summary |> filter(variable == "renewable_capacity_per_capita") |> pull(percent))/100, accuracy = 0.1)`. The outcome has `r missing_summary |> filter(variable == "co2_emissions_kt") |> pull(missing)` missing rows, or `r scales::percent((missing_summary |> filter(variable == "co2_emissions_kt") |> pull(percent))/100, accuracy = 0.1)`. GDP per capita has `r missing_summary |> filter(variable == "gdp_per_capita") |> pull(missing)` missing rows, or `r scales::percent((missing_summary |> filter(variable == "gdp_per_capita") |> pull(percent))/100, accuracy = 0.1)`. All 175 outcome values in 2020 are missing. Each earlier year has 12 to 16 missing outcome values.
 
 ```{r missing-data-code, echo=TRUE, fig.show='hide'}
-selected_missing_data <- energy_raw |>
-  select(
-    Entity,
-    Year,
-    `Access to electricity (% of population)`,
-    `Access to clean fuels for cooking`,
-    `Renewable-electricity-generating-capacity-per-capita`,
-    gdp_per_capita,
-    `Land Area(Km2)`,
-    `Electricity from fossil fuels (TWh)`,
-    `Electricity from nuclear (TWh)`,
-    `Electricity from renewables (TWh)`,
-    `Low-carbon electricity (% electricity)`,
-    `Primary energy consumption per capita (kWh/person)`,
-    Value_co2_emissions_kt_by_country
-  )
-
 naniar::vis_miss(
   selected_missing_data,
   sort_miss = TRUE,
@@ -152,7 +152,7 @@ naniar::vis_miss(
 knitr::include_graphics("graphs/missing_data_pattern.png")
 ```
 
-Rows with a missing outcome cannot train or test the models. I remove these rows first. The recipes do not impute missing predictors. Rows with any missing selected predictor are also removed. This leaves `r nrow(prepared_data)` of the original `r nrow(raw_data)` rows. This choice may affect the model results. The issue is discussed in the limitations.
+For those missing value, I choose to remove them. The recipes do not impute missing predictors. Rows with any missing selected predictor are also removed. The missing value are not caused by data collection or cleaning, so I will treat them similarly as completely random missing values. This leaves `r nrow(prepared_data)` of the original `r nrow(raw_data)` rows. This choice may affect the model results, so I will discussed in the limitations.
 
 ## Prepared Dataset
 
@@ -168,7 +168,7 @@ preparation_summary |>
 
 ## Distribution of Carbon Dioxide Emissions
 
-Figure 2 compares the outcome on the original scale and the log scale. The original CO2 values are strongly right-skewed. The median is about 5,550 kt. The mean is 121,445 kt, and the maximum is 10,707,220 kt. The mean is almost 22 times the median. A few large emitters can dominate squared error on the original scale. The log distribution is more balanced. I use `log10(co2_emissions_kt)` as the modeling outcome and for the cross-validation strata.
+Figure 2 compares the outcome on the original scale and the log scale. Accoridng to the graphs, we can see that the original CO2 values are strongly right-skewed. Hence, I did simple data calculations, and find out the median is about 5,550 kt. The mean is 121,445 kt, and the maximum is 10,707,220 kt. The mean is almost 22 times the median, becaused of outliers. The unit of country-based is very large, so a few large emitters can dominate squared error on the original scale. Therefore, I try log distribution, and it is more balanced. I will use `log10(co2_emissions_kt)` as the modeling outcome and for the cross-validation strata.
 
 ```{r outcome-distribution, fig.cap="Figure 2. Distribution of country-level CO2 emissions before and after a base-10 logarithmic transformation."}
 knitr::include_graphics("graphs/co2_distribution.png")
@@ -176,9 +176,9 @@ knitr::include_graphics("graphs/co2_distribution.png")
 
 ## Carbon Dioxide Emissions Over Time
 
-Figure 3 shows the yearly median and middle 50% of CO2 emissions. The median is 4,030 kt in 2000. It increases to 7,690 kt in 2019. The line does not increase every year. The middle 50% also covers a wide range. I keep the later years for testing to represent a later time period.
+Figure 3 shows the yearly median of CO2 emissions. The median is 4,030 kt in 2000. It increases to 7,690 kt in 2019. The line does not increase every year. I keep the later years for testing to represent a later time period.
 
-```{r time-trend, fig.cap="Figure 3. Annual median and interquartile range of country-level CO2 emissions."}
+```{r time-trend, fig.cap="Figure 3. Annual median of country-level CO2 emissions."}
 knitr::include_graphics("graphs/co2_over_time.png")
 ```
 
