@@ -1,4 +1,6 @@
+#macOS
 .DS_Store
+.Rhistory
 
 #data
 data/raw/
