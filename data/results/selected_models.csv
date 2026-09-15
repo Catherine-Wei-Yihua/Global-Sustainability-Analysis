@@ -1,3 +1,2 @@
 rank,model,mean_rmse,std_err,selected_parameters,selection_reason
-1,Random Forest,0.07919769360206584,0.011312986558162421,mtry = 5; trees = 500; min_n = 10,The two lowest mean RMSE values differ by no more than their combined standard error.
-2,Linear Regression,0.08294566071928994,0.0027589621907102933,None,The two lowest mean RMSE values differ by no more than their combined standard error.
+1,Random Forest,0.07919769360206584,0.011312986558162421,mtry = 5; trees = 500; min_n = 10,This model has the lowest mean cross-validation RMSE.

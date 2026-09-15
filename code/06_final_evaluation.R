@@ -11,20 +11,12 @@ selected_models <- readr::read_csv(
 )
 
 model_files <- c(
-  "Linear Regression" = "data/models/linear_regression.rds",
-  "Elastic Net" = "data/models/elastic_net.rds",
-  "K-Nearest Neighbors" = "data/models/knn.rds",
-  "Random Forest" = "data/models/random_forest.rds",
-  "Gradient-Boosted Trees" = "data/models/boosted_trees.rds"
+  "Random Forest" = "data/models/random_forest.rds"
 )
 
 finalize_selected_workflow <- function(model_name) {
   output <- readRDS(unname(model_files[[model_name]]))
-  if (model_name == "Linear Regression") {
-    output$workflow
-  } else {
-    finalize_workflow(output$workflow, output$best)
-  }
+  finalize_workflow(output$workflow, output$best)
 }
 
 prediction_results <- vector("list", nrow(selected_models))
@@ -73,25 +65,17 @@ readr::write_csv(test_metrics, "data/results/final_test_metrics.csv")
 
 prediction_plot <- ggplot(
   all_predictions,
-  aes(x = observed_co2_kt, y = predicted_co2_kt, color = model)
+  aes(x = observed_co2_kt, y = predicted_co2_kt)
 ) +
   geom_abline(slope = 1, intercept = 0, color = report_colors[["gray"]], linetype = 2) +
-  geom_point(alpha = 0.55, size = 1.6) +
+  geom_point(alpha = 0.55, size = 1.6, color = report_colors[["navy"]]) +
   scale_x_log10(labels = scales::label_number(big.mark = ",")) +
   scale_y_log10(labels = scales::label_number(big.mark = ",")) +
-  scale_color_manual(values = c(
-    "Random Forest" = report_colors[["navy"]],
-    "Linear Regression" = report_colors[["coral"]],
-    "Elastic Net" = report_colors[["sand"]],
-    "K-Nearest Neighbors" = report_colors[["blue"]],
-    "Gradient-Boosted Trees" = report_colors[["light_blue"]]
-  )) +
   labs(
-    title = "Predicted versus Observed CO2 Emissions",
+    title = "Random Forest: Predicted versus Observed CO2 Emissions",
     subtitle = "Untouched 2016-2019 test years; both axes use log10 scales",
     x = "Observed CO2 emissions (kt)",
-    y = "Predicted CO2 emissions (kt)",
-    color = NULL
+    y = "Predicted CO2 emissions (kt)"
   )
 
 ggsave("graphs/test_predicted_vs_observed.png", prediction_plot, width = 8, height = 6, dpi = 300)

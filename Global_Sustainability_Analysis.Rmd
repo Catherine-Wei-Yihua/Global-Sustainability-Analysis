@@ -19,6 +19,7 @@ h1, h2 { color: #24435B; }
 .table-responsive { overflow-x: auto; }
 table { font-size: 0.90em; }
 .caption { color: #5E6A71; font-style: italic; }
+.scroll-output { max-height: 520px; overflow-y: auto; }
 </style>
 
 ```{r setup, include=FALSE}
@@ -383,6 +384,14 @@ Root mean squared error (RMSE) is used to compare the models. It is the square r
 
 Linear regression is the baseline model. It gives one coefficient to each numeric or dummy term. This model does not need a tuning grid. Its mean cross-validation RMSE is **0.0829**. The standard error is 0.0028. I do not interpret each coefficient because several predictors are correlated. The overall result is still useful for model comparison.
 
+I refit the linear workflow on all training years for the summary below. The output is long because `Entity` is converted into many dummy variables.
+
+```{r linear-regression-summary, echo=TRUE, class.output="scroll-output"}
+linear_final_fit <- readRDS("data/models/linear_regression_final_fit.rds")
+linear_model <- workflows::extract_fit_engine(linear_final_fit)
+summary(linear_model)
+```
+
 ## Elastic Net
 
 Elastic net uses regularization for correlated predictors. I tune its penalty and mixture. The best penalty is 0.0001. The best mixture is 0.333. This setting has a mean RMSE of **0.0841**. Its standard error is 0.0027. The small penalty gives a result close to linear regression.
@@ -443,17 +452,17 @@ knitr::include_graphics("graphs/cv_rmse_model_comparison.png")
 
 ## Best Selected Model
 
-Random forest has the lowest mean RMSE. Linear regression is only 0.0037 higher. Their combined standard error is about 0.0116. I consider the two results close. Both models are used on the final test set. The other three models are not tested.
+Random forest has the lowest mean cross-validation RMSE. I select it as the best model. Only random forest is used on the final test set. The other four models are not tested.
 
 # Final Test Performance
 
 ## Finalize the Selected Model
 
-The final random forest uses `mtry = 5`, 500 trees, and `min_n = 10`. Linear regression has no tuned parameters. I fit both workflows on all 1,676 training observations. They predict the 424 test observations from 2016–2019. The test outcomes are not used during preprocessing, tuning, or model selection.
+The final random forest uses `mtry = 5`, 500 trees, and `min_n = 10`. I fit this workflow on all 1,676 training observations. It predicts the 424 test observations from 2016–2019. The test outcomes are not used during preprocessing, tuning, or model selection.
 
 ## Test RMSE
 
-The two models are compared on the test set. Random forest has a log10 RMSE of **0.1113**. Linear regression has a log10 RMSE of **0.1235**. I find that random forest has the better primary test result. These values give multiplicative error factors of about 1.29 and 1.33. A factor of 1.29 means an error of about 29% in multiplicative terms. Individual errors can be larger or smaller. Both test RMSE values are higher than their cross-validation RMSE values. Prediction for later years is more difficult.
+Random forest has a test log10 RMSE of **0.1113**. This gives a multiplicative error factor of about 1.29. A factor of 1.29 means an error of about 29% in multiplicative terms. Individual errors can be larger or smaller. The test RMSE is higher than the cross-validation RMSE. Prediction for later years is more difficult.
 
 ```{r final-test-table}
 test_metrics |>
@@ -465,16 +474,16 @@ test_metrics |>
     `Multiplicative factor` = round(multiplicative_error_factor, 2),
     `Test RMSE (original kt)` = scales::comma(round(test_rmse_original_kt))
   ) |>
-  kable(caption = "Performance of the two selected models on the untouched test years")
+  kable(caption = "Random forest performance on the untouched test years")
 ```
 
-The original-scale RMSE gives a different result. Linear regression has the smaller value. A few very large emitters strongly affect this metric. I selected the log-scale metric before fitting the models. It gives more balance across countries. Random forest remains the primary selected model.
+The original-scale RMSE is strongly affected by a few very large emitters. I selected the log-scale metric before fitting the models because it gives more balance across countries.
 
 ## Predicted Versus Observed Values
 
-Figure 12 plots predicted values against observed values. Most points are close to the diagonal line. The correlation is above 0.99 for both models on the log scale. I find a smaller median absolute log error for random forest. Some of its largest errors are underpredictions in recent years. The log axes also keep low- and medium-emission countries visible.
+Figure 12 plots the random forest predictions against observed values. Most points are close to the diagonal line. The correlation is above 0.99 on the log scale. Some of the largest errors are underpredictions in recent years. The log axes also keep low- and medium-emission countries visible.
 
-```{r prediction-figure, fig.cap="Figure 12. Predictions from the selected models versus observed test-set emissions."}
+```{r prediction-figure, fig.cap="Figure 12. Random forest predictions versus observed test-set emissions."}
 knitr::include_graphics("graphs/test_predicted_vs_observed.png")
 ```
 
@@ -490,7 +499,7 @@ knitr::include_graphics("graphs/random_forest_variable_importance.png")
 
 ## Main Findings
 
-The selected indicators predict country-level CO2 emissions well on the log scale. Random forest has the lowest cross-validation RMSE at 0.0792. Linear regression is close at 0.0829. I test both models on 2016–2019. Random forest performs better on the primary test metric. Its log10 RMSE is 0.1113. This is a multiplicative error factor of about 1.29. Linear regression has a test RMSE of 0.1235. KNN has the highest cross-validation RMSE among the five models.
+The selected indicators predict country-level CO2 emissions well on the log scale. Random forest has the lowest cross-validation RMSE at 0.0792. I select it as the best model and test it on 2016–2019. Its test log10 RMSE is 0.1113. This is a multiplicative error factor of about 1.29.
 
 Fossil electricity is the strongest predictor in the random forest. Land area, renewable electricity, and nuclear electricity also have high importance. These variables describe energy use and country size. I cannot use this result to prove which action will reduce emissions. It can help me choose questions for future research.
 

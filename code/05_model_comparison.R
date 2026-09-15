@@ -58,21 +58,10 @@ comparison <- bind_rows(
 
 readr::write_csv(comparison, "data/results/cv_model_comparison.csv")
 
-top_two <- comparison |>
-  slice_head(n = 2)
-
-combined_standard_error <- sqrt(sum(top_two$std_err^2))
-rmse_difference <- diff(top_two$mean_rmse)
-models_are_close <- abs(rmse_difference) <= combined_standard_error
-
 selected_models <- comparison |>
-  slice_head(n = if_else(models_are_close, 2L, 1L)) |>
+  slice_min(mean_rmse, n = 1, with_ties = FALSE) |>
   mutate(
-    selection_reason = if_else(
-      models_are_close,
-      "The two lowest mean RMSE values differ by no more than their combined standard error.",
-      "The lowest mean RMSE is separated from the second-lowest by more than their combined standard error."
-    )
+    selection_reason = "This model has the lowest mean cross-validation RMSE."
   )
 
 readr::write_csv(selected_models, "data/results/selected_models.csv")
