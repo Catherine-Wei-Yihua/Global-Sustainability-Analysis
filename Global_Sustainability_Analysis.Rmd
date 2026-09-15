@@ -28,7 +28,11 @@ set.seed(131)
 
 # Introduction
 
+## What Are We Going to Explore?
+
 Countries differ widely in their energy systems, economic conditions, access to modern energy services, and resulting carbon dioxide emissions. The dataset used in this project combines country-level measures of electricity access, energy sources, renewable-energy use, economic performance, and geographic characteristics from 2000 through 2020. These variables provide an opportunity to examine which observed national characteristics are most useful for predicting reported carbon dioxide emissions.
+
+## Why Do We Want to Predict This?
 
 The primary research question is: **How accurately can a country's carbon dioxide emissions be predicted from its economic, energy, social, and geographic characteristics?** This is a predictive rather than causal analysis. Relationships identified by the models should not be interpreted as evidence that changing one predictor would directly cause emissions to change.
 
@@ -36,88 +40,134 @@ The primary research question is: **How accurately can a country's carbon dioxid
 
 ## Data source and structure
 
-<!-- Describe and formally cite the data source. Summarize the observational unit, years, entities, variables, and outcome. -->
+<!-- Keep this subsection brief. Introduce the dataset source with its Kaggle link embedded in the sentence, load the raw CSV with read_csv(), show a brief glimpse(), and describe the country-year observational unit and time/geographic coverage in one or two sentences. -->
 
-## Variable roles and definitions
+## Variable Selection
 
-<!-- Identify the outcome, candidate predictors, identifiers, and variables excluded from modeling. Refer readers to the complete codebook. -->
+<!-- Use dim() to report the original dimensions, display the complete codebook, define the CO2-emissions outcome, and introduce the candidate predictors. -->
 
 # Data Preparation
 
 ## Data cleaning
 
-<!-- Document column-name standardization, type conversion, validity checks, duplicate handling, and any row or variable exclusions. -->
+<!-- Standardize variable names, correct variable types, and check duplicate observations and duplicate country-year combinations. -->
 
 ## Missing data
 
-<!-- Report the amount and pattern of missingness and explain how missing values will be handled. -->
+<!-- Use vis_miss() to assess the amount and pattern of missingness. Check whether missing outcome values are limited or concentrated in a particular year. Remove observations with missing outcomes when appropriate; if missingness is extensive or complex, explain the final handling decision. -->
 
-## Final modeling dataset
+## Prepared Dataset
 
-<!-- Summarize the prepared dataset without using information from the future test set. -->
+<!-- Report the retained observations and variables, summarize the completed preparation steps, and identify the cleaned dataset saved under data/processed/. -->
 
 # Exploratory Data Analysis
 
 ## Distribution of carbon dioxide emissions
 
-<!-- Include and interpret a univariate outcome visualization. -->
+<!-- Show the outcome distribution on its original scale and, if useful, its logarithmic scale. Discuss skewness, extreme values, transformations, and whether outcome stratification is needed. -->
+
+## Carbon Dioxide Emissions Over Time
+
+<!-- Use a line plot with year on the x-axis and briefly interpret the temporal pattern. -->
 
 ## Relationships between emissions and selected predictors
 
-<!-- Include and interpret several bivariate or multivariate visualizations. -->
+<!-- Use scatterplots for predictors selected after inspecting the data. Add fitted trend lines only where they aid interpretation. -->
+
+## Distributions of Selected Predictors
+
+<!-- Use histograms for predictors selected after inspecting the data. Discuss skewness, unusual values, and possible transformations. -->
+
+## Correlation Between Numeric Variables
+
+<!-- Present a correlation heatmap and discuss the strongest relationships with the outcome and potentially redundant predictors. -->
 
 ## Exploratory findings
 
-<!-- Summarize the EDA findings that inform preprocessing and model selection. -->
-
-# Data Splitting and Cross-Validation
-
-## Training and testing sets
-
-<!-- Explain the split proportion, seed, stratification, and safeguards for repeated country observations. -->
-
-## Resampling design
-
-<!-- Explain stratified or grouped k-fold cross-validation for a general audience. -->
+<!-- Summarize the main patterns and the resulting stratification, transformation, recipe, and modeling decisions. -->
 
 # Model Setup
 
-## Outcome and predictors
+## Data Split
 
-<!-- Define the final modeling variables and justify exclusions. -->
+<!-- Sort by year, train on the earlier years, and reserve the most recent years for testing, targeting an approximately 80/20 chronological split. Compare the two outcome distributions and keep the test set untouched until final evaluation. -->
 
-## Preprocessing recipes
+## Ten-Fold Cross-Validation
 
-<!-- Describe transformations, encoding, imputation, normalization, and model-specific recipes. -->
+<!-- Create 10 folds from the training data only, stratify by the outcome, and reuse the same folds for all five models. Explain the process for a general audience. -->
 
-## Performance metrics
+## Recipe Creation and Tuning Grids
 
-<!-- Define the primary and secondary regression metrics and explain how to interpret them. -->
+<!-- Explain categorical-predictor and dummy-variable handling, centering and scaling where required, and the tuning grids. Include one summary-table row per model with dummy-variable, centering, scaling, tuning, tuned-parameter, and grid-size information. -->
 
-# Model Fitting and Tuning
+# Model Fitting
 
-<!-- Compare at least four appropriate regression model families. Document all tuned hyperparameters and search ranges. -->
+## Model Evaluation Metric
 
-# Model Comparison
+<!-- Define RMSE and explain its direction in approximately three sentences. State that all models use mean RMSE from the same 10-fold cross-validation folds. -->
 
-<!-- Present cross-validation performance in a table and figure, then select the best one or two models without using test results. -->
+## Linear Regression
+
+<!-- Briefly describe the specification and workflow, report cross-validation RMSE, and interpret the result. Keep all fitting code outside the rendered report. -->
+
+## Elastic Net
+
+<!-- Tune mixture over 4 levels from 0 to 1 and penalty over 5 levels. Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+
+## K-Nearest Neighbors
+
+<!-- Tune K over c(7, 15, 25, 35, 45, 65). Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+
+## Random Forest
+
+<!-- Fix trees at 500 and min_n at 10. Tune mtry over 6 levels selected after the final predictor count is known. Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+
+## Gradient-Boosted Trees
+
+<!-- Fix trees at 1000 and min_n at 10. Tune learn_rate over c(0.01, 0.05, 0.1) and tree_depth over c(1, 2). Show only the RMSE tuning plot and analysis in the report; keep specification, workflow, and tuning code in code/. -->
+
+# Best Model Selection
+
+## Cross-Validation Performance
+
+<!-- Rank the five models by mean cross-validation RMSE. Report RMSE standard errors and the selected hyperparameters in a concise table. -->
+
+## RMSE Comparison Plot
+
+<!-- Compare mean RMSE for all five models in a horizontal point plot with standard-error bars. -->
+
+## Best Selected Model
+
+<!-- Identify the lowest-RMSE model, determine whether the second-best model is close, and decide whether one or two models proceed to final testing. -->
 
 # Final Test Performance
 
-<!-- Evaluate only the selected model or models on the untouched test set. Include metrics and diagnostic plots. -->
+## Finalize the Selected Model
+
+<!-- Finalize the selected workflow with its chosen hyperparameters, fit it on the complete training set, and generate predictions for the untouched testing set. -->
+
+## Test RMSE
+
+<!-- Report testing RMSE and compare it with cross-validation RMSE to assess the generalization gap. -->
+
+## Predicted versus Observed Values
+
+<!-- Show a predicted-versus-observed scatterplot with a perfect-prediction reference line and interpret the pattern of errors. -->
+
+## Model Interpretation
+
+<!-- Optional: retain only if the selected model supports a useful variable-importance or coefficient plot. -->
 
 # Conclusion
 
-<!-- Write at least two complete paragraphs covering the main findings, model ranking, test performance, limitations, and future work. -->
+## Main Findings
+
+<!-- Answer the research question, identify the best model, report its cross-validation and testing RMSE, and summarize predictive performance in a complete paragraph. -->
+
+## Limitations
+
+<!-- Discuss only limitations supported by the completed analysis and explain how they may affect the results. End with one brief future-research sentence to satisfy the rubric. -->
 
 # References
 
-<!-- Provide complete citations for the dataset and any external methodological or contextual sources. -->
-
-# Appendix
-
-## Reproducibility information
-
-```{r session-info}
-sessionInfo()
-```
+Tanwar, A. (n.d.). *Global Data on Sustainable Energy (2000–2020)* [Data set]. Kaggle. [https://www.kaggle.com/datasets/anshtanwar/global-data-on-sustainable-energy/data](https://www.kaggle.com/datasets/anshtanwar/global-data-on-sustainable-energy/data)
