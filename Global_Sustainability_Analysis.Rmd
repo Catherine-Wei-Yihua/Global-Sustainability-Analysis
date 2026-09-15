@@ -329,6 +329,20 @@ knitr::include_graphics("graphs/numeric_correlation_heatmap.png")
 
 The 20 usable years are sorted in time order. I use 2000–2015 for training. This set has `r split_summary |> filter(set == "Training") |> pull(observations)` observations, or `r round(split_summary |> filter(set == "Training") |> pull(percent), 1)`% of the data. The years 2016–2019 are used for testing. This set has `r split_summary |> filter(set == "Testing") |> pull(observations)` observations, or `r round(split_summary |> filter(set == "Testing") |> pull(percent), 1)`%. This is not a random split. The goal is to test the models on later years. The training median is about 5,150 kt. The testing median is about 7,395 kt.
 
+```{r data-split-table}
+split_summary |>
+  transmute(
+    Set = set,
+    Year = paste0(first_year, "-", last_year),
+    Count = scales::comma(observations),
+    Percentage = scales::percent(percent / 100, accuracy = 0.1)
+  ) |>
+  kable(
+    caption = "Training and testing data split",
+    align = c("l", "c", "r", "r")
+  )
+```
+
 ## Ten-Fold Cross-Validation
 
 Model selection only uses the training set. I divide it into ten folds. The log10 outcome is split into five strata. This helps each fold cover the outcome distribution. Each model is fit on nine folds and validated on the remaining fold. The process is repeated ten times. Every fold is used once for validation. All five models use the same folds and random seed.
