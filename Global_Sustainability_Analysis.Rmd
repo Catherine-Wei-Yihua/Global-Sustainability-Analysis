@@ -170,6 +170,31 @@ preparation_summary |>
 
 Figure 2 compares the outcome on the original scale and the log scale. Accoridng to the graphs, we can see that the original CO2 values are strongly right-skewed. Hence, I did simple data calculations, and find out the median is about 5,550 kt. The mean is 121,445 kt, and the maximum is 10,707,220 kt. The mean is almost 22 times the median, becaused of outliers. The unit of country-based is very large, so a few large emitters can dominate squared error on the original scale. Therefore, I try log distribution, and it is more balanced. I will use `log10(co2_emissions_kt)` as the modeling outcome and for the cross-validation strata.
 
+```{r outcome-distribution-code, echo=TRUE, eval=FALSE}
+outcome_original <- ggplot(eda_data, aes(x = co2_emissions_kt)) +
+  geom_histogram(bins = 45, fill = report_colors[["blue"]], color = "white") +
+  scale_x_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+  labs(
+    title = "Original scale",
+    x = "CO2 emissions (kilotonnes)",
+    y = "Country-year observations"
+  )
+
+outcome_log <- ggplot(eda_data, aes(x = log10_co2_emissions)) +
+  geom_histogram(bins = 35, fill = report_colors[["coral"]], color = "white") +
+  labs(
+    title = "Logarithmic scale",
+    x = "log10(CO2 emissions in kilotonnes)",
+    y = "Country-year observations"
+  )
+
+outcome_distribution_plot <- outcome_original + outcome_log +
+  plot_annotation(
+    title = "Distribution of country-level CO2 emissions",
+    subtitle = "A logarithmic transformation reduces the influence of extreme emitters"
+  )
+```
+
 ```{r outcome-distribution, fig.cap="Figure 2. Distribution of country-level CO2 emissions before and after a base-10 logarithmic transformation."}
 knitr::include_graphics("graphs/co2_distribution.png")
 ```
@@ -177,6 +202,22 @@ knitr::include_graphics("graphs/co2_distribution.png")
 ## Carbon Dioxide Emissions Over Time
 
 Figure 3 shows the yearly median of CO2 emissions. The median is 4,030 kt in 2000. It increases to 7,690 kt in 2019. The line does not increase every year. I keep the later years for testing to represent a later time period.
+
+```{r time-trend-code, echo=TRUE, eval=FALSE}
+time_plot <- ggplot(annual_summary, aes(x = year, y = median_co2)) +
+  geom_line(color = report_colors[["navy"]], linewidth = 1) +
+  geom_point(color = report_colors[["navy"]], size = 2) +
+  scale_y_log10(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+  scale_x_continuous(
+    breaks = seq(min(annual_summary$year), max(annual_summary$year), by = 2)
+  ) +
+  labs(
+    title = "Median country-level CO2 emissions increased over time",
+    subtitle = "Each point shows the median across countries in that year",
+    x = "Year",
+    y = "CO2 emissions (kilotonnes, log scale)"
+  )
+```
 
 ```{r time-trend, fig.cap="Figure 3. Annual median of country-level CO2 emissions."}
 knitr::include_graphics("graphs/co2_over_time.png")
@@ -186,6 +227,27 @@ knitr::include_graphics("graphs/co2_over_time.png")
 
 The three numeric predictors with the largest absolute Spearman correlations are fossil electricity, renewable electricity, and land area. I select them for Figure 4. Fossil electricity has the strongest relationship with log10 emissions ($\rho = 0.906$). Renewable electricity has a correlation of $\rho = 0.549$. Land area has a correlation of $\rho = 0.511$. Some patterns are curved or clustered. A straight line may not fit every pattern. These plots show associations instead of causal effects.
 
+```{r relationship-figure-code, echo=TRUE, eval=FALSE}
+relationship_plot <- ggplot(
+  relationship_data,
+  aes(x = value, y = log10_co2_emissions)
+) +
+  geom_point(alpha = 0.22, size = 1.1, color = report_colors[["blue"]]) +
+  geom_smooth(
+    method = "loess",
+    se = FALSE,
+    color = report_colors[["coral"]],
+    linewidth = 0.9
+  ) +
+  facet_wrap(vars(predictor), scales = "free_x", ncol = 3) +
+  labs(
+    title = "CO2 emissions and the strongest numeric predictors",
+    subtitle = "Predictors are selected by absolute Spearman correlation with log10 emissions",
+    x = NULL,
+    y = "log10(CO2 emissions in kilotonnes)"
+  )
+```
+
 ```{r relationship-figure, fig.cap="Figure 4. Log10 CO2 emissions versus the three numeric predictors with the largest absolute Spearman correlations."}
 knitr::include_graphics("graphs/emissions_predictor_relationships.png")
 ```
@@ -193,6 +255,21 @@ knitr::include_graphics("graphs/emissions_predictor_relationships.png")
 ## Distributions of Selected Predictors
 
 Figure 5 shows GDP per capita, renewable capacity per capita, and primary energy use per capita. All three distributions are uneven. I use `log10(x + 1)` to make small and large values easier to see. This transformation also keeps zero values. The predictors are scaled inside the resampling process for elastic net and KNN.
+
+```{r predictor-distributions-code, echo=TRUE, eval=FALSE}
+predictor_distribution_plot <- ggplot(
+  distribution_data,
+  aes(x = transformed_value)
+) +
+  geom_histogram(bins = 35, fill = report_colors[["sand"]], color = "white") +
+  facet_wrap(vars(predictor), scales = "free", ncol = 3) +
+  labs(
+    title = "Selected predictors have uneven distributions",
+    subtitle = "Each horizontal axis shows log10(x + 1)",
+    x = NULL,
+    y = "Country-year observations"
+  )
+```
 
 ```{r predictor-distributions, fig.cap="Figure 5. Distributions of three selected predictors after log10(x + 1) is used for display."}
 knitr::include_graphics("graphs/selected_predictor_distributions.png")
@@ -202,13 +279,49 @@ knitr::include_graphics("graphs/selected_predictor_distributions.png")
 
 Figure 6 shows a Spearman correlation plot. Larger circles mean stronger correlations. Blue circles are positive, and red circles are negative. The number in each circle gives the correlation value. Several predictors have similar information. Electricity access, clean-cooking access, GDP per capita, and primary energy use are positively correlated. Renewable capacity is related to renewable electricity and the low-carbon share. Fossil electricity has the strongest numeric correlation with the outcome. Correlated predictors may make linear regression coefficients unstable. I include elastic net and tree models for comparison.
 
+```{r correlation-plot-code, echo=TRUE, eval=FALSE}
+correlation_plot <- ggplot(
+  correlation_long,
+  aes(x = variable_2, y = variable_1)
+) +
+  geom_tile(fill = "white", color = "#D2D2D2", linewidth = 0.45) +
+  geom_point(
+    aes(size = abs(correlation), fill = correlation),
+    shape = 21,
+    color = "#6F6F6F",
+    stroke = 0.25
+  ) +
+  geom_text(aes(label = correlation_label), color = "black", size = 2.8) +
+  scale_size_area(max_size = 14, limits = c(0, 1), guide = "none") +
+  scale_fill_gradient2(
+    low = "#C96A5A",
+    mid = "white",
+    high = "#2B6087",
+    midpoint = 0,
+    limits = c(-1, 1),
+    name = "Spearman\ncorrelation"
+  ) +
+  scale_x_discrete(labels = short_labels, position = "bottom") +
+  scale_y_discrete(labels = short_labels) +
+  coord_equal(clip = "off") +
+  labs(
+    title = "Correlation among numeric modeling variables",
+    subtitle = "Circle size and color show the strength and direction of each correlation",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_report(10) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    panel.grid = element_blank(),
+    panel.background = element_rect(fill = "white", color = NA),
+    legend.position = "right"
+  )
+```
+
 ```{r correlation-heatmap, fig.cap="Figure 6. Spearman correlations among numeric modeling variables."}
 knitr::include_graphics("graphs/numeric_correlation_heatmap.png")
 ```
-
-## Exploratory Findings
-
-The EDA leads to four modeling choices. I use the log10 outcome because the original outcome is very skewed. The test split follows time order. The cross-validation folds are stratified with the log outcome. Each model also has its own recipe.
 
 # Model Setup
 
