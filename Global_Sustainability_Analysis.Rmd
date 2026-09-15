@@ -158,6 +158,12 @@ For those missing value, I choose to remove them. The recipes do not impute miss
 
 The prepared dataset has `r nrow(prepared_data)` observations from `r n_distinct(prepared_data$entity)` countries. It covers `r min(prepared_data$year)` to `r max(prepared_data$year)`. It contains 12 predictors, the original CO2 outcome, and its base-10 log value. I save the cleaned data as `data/processed/sustainability_clean.csv`. The preparation code is in `code/01_data_preparation.R`.
 
+The glimpse below shows the selected variables and their data types.
+
+```{r prepared-data-glimpse, echo=TRUE}
+dplyr::glimpse(prepared_data)
+```
+
 ```{r preparation-table}
 preparation_summary |>
   rename(Stage = stage, Observations = observations) |>
@@ -277,7 +283,7 @@ knitr::include_graphics("graphs/selected_predictor_distributions.png")
 
 ## Correlation Between Numeric Variables
 
-Figure 6 shows a Spearman correlation plot. Larger circles mean stronger correlations. Blue circles are positive, and red circles are negative. The number in each circle gives the correlation value. Several predictors have similar information. Electricity access, clean-cooking access, GDP per capita, and primary energy use are positively correlated. Renewable capacity is related to renewable electricity and the low-carbon share. Fossil electricity has the strongest numeric correlation with the outcome. Correlated predictors may make linear regression coefficients unstable. I include elastic net and tree models for comparison.
+Figure 6 shows a Spearman correlation plot. Larger circles mean stronger correlations. Blue circles are positive, and red circles are negative. Each numer in the circle represents the correlation value. From the plot, there are several predictors have similar correlations. Electricity access, clean-cooking access, GDP per capita, and primary energy use are positively correlated. Renewable capacity is related to renewable electricity and the low-carbon share. Fossil electricity has the strongest numeric correlation with the outcome. Correlated predictors may make linear regression coefficients unstable, so I include elastic net and tree models for comparison.
 
 ```{r correlation-plot-code, echo=TRUE, eval=FALSE}
 correlation_plot <- ggplot(
@@ -327,7 +333,7 @@ knitr::include_graphics("graphs/numeric_correlation_heatmap.png")
 
 ## Data Split
 
-The 20 usable years are sorted in time order. I use 2000–2015 for training. This set has `r split_summary |> filter(set == "Training") |> pull(observations)` observations, or `r round(split_summary |> filter(set == "Training") |> pull(percent), 1)`% of the data. The years 2016–2019 are used for testing. This set has `r split_summary |> filter(set == "Testing") |> pull(observations)` observations, or `r round(split_summary |> filter(set == "Testing") |> pull(percent), 1)`%. This is not a random split. The goal is to test the models on later years. The training median is about 5,150 kt. The testing median is about 7,395 kt.
+Due to the specialty of this dataset, the observation units are sorted in time order. There are 20 usable years. As the model is aiming to predict the outcome in later years, I use ealier data, 2000–2015, for training. This set has `r split_summary |> filter(set == "Training") |> pull(observations)` observations, or `r round(split_summary |> filter(set == "Training") |> pull(percent), 1)`% of the data. The years 2016–2019 are used for testing. This set has `r split_summary |> filter(set == "Testing") |> pull(observations)` observations, or `r round(split_summary |> filter(set == "Testing") |> pull(percent), 1)`%. This is not a random split. The goal is to test the models on later years. The training median is about 5,150 kt. The testing median is about 7,395 kt. On the other hand, as the CO2 emissions are increasing over time, the later years have higher median values, so it might lead increase the testing error. 
 
 ```{r data-split-table}
 split_summary |>
@@ -345,7 +351,7 @@ split_summary |>
 
 ## Ten-Fold Cross-Validation
 
-Model selection only uses the training set. I divide it into ten folds. The log10 outcome is split into five strata. This helps each fold cover the outcome distribution. Each model is fit on nine folds and validated on the remaining fold. The process is repeated ten times. Every fold is used once for validation. All five models use the same folds and random seed.
+I set k = 10, which divides training set into ten folds. Because the log10 outcome of CO2 are continuous variables without obvious categories, so I split them into five strata. This helps each fold cover the outcome distribution. Each model is fit on nine folds and validated on the remaining one fold. The process is repeated ten times and each fold is used once for validation. All five models use the same folds and random seed.
 
 ## Recipe Creation and Tuning Grids
 
