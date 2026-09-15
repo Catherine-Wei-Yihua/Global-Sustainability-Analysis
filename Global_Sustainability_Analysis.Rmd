@@ -15,28 +15,7 @@ output:
 
 <style>
 body { line-height: 1.65; }
-h1.title {
-  color: #111111;
-  font-size: 46px;
-  font-weight: 500;
-  line-height: 1.15;
-  margin-bottom: 24px;
-}
-h3.subtitle {
-  color: #000000;
-}
-h4.author, h4.date {
-  color: #000000;
-}
-h1:not(.title) {
-  color: #111111;
-  font-size: 36px;
-  font-weight: 500;
-  margin-top: 42px;
-}
-h2 {
-  color: #24435B;
-}
+h1, h2 { color: #24435B; }
 .table-responsive { overflow-x: auto; }
 table { font-size: 0.90em; }
 .caption { color: #5E6A71; font-style: italic; }
